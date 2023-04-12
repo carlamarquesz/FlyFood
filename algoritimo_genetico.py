@@ -1,8 +1,12 @@
 import random, time, math
 import matplotlib.pyplot as plt
- 
-# Inicializando meu programa e obtendo a minha matriz
 
+# Define os parâmetros do algoritmo genético
+tamanho_populacao = 10  # quantos indivíduos vão ser gerados em cada geração.
+taxa_mutacao = 0.01
+geracoes = 100
+
+# Inicializando meu programa e obtendo a minha matriz
 with open("matriz", "r") as f:
     linhas = f.readlines()[1:]
 matrix = []
@@ -10,75 +14,64 @@ for linha in linhas:
     linha = linha.strip().split()
     matrix.append(linha)
 
-
-# Cria a lista com os pontos diferentes de zero
+# Cria uma lista e um dicionario com os pontos diferentes de zero
 pontos = []
-coordenada_r = None
-
+dict_pontos = []
 for i in range(0, len(matrix)):
     for j in range(0, len(matrix[0])):
-        if str(matrix[i][j]) != "0":
+        if str(matrix[i][j]) != "0" and matrix[i][j] != "R":
             pontos.append(matrix[i][j])
+            dict_pontos.append({"x": i, "y": j, "name": matrix[i][j]})
         if matrix[i][j] == "R":
-            coordenada_r = (i, j)  
-pontos.remove("R") 
+            posicao_R = {"x": i, "y": j, "name": matrix[i][j]}
 
-# Define os parâmetros do algoritmo genético
-tamanho_populacao = 100  # quantos indivíduos vão ser gerados em cada geração.
-tamanho_elite = 10
-taxa_mutacao = 0.01
-geracoes = 200
+# Função para calcular a aptidão da população utilizando a função fitness.
+def aptidao(populacao):
+    lista_apitidoes = [None] * len(populacao)
+    for i, individuo in enumerate(populacao):
+        lista_apitidoes[i] = fitness(individuo)
+    maximo = sum(lista_apitidoes)
+    return [maximo - x for x in lista_apitidoes]
 
 
-# A função fitness recebe um indivíduo, que é uma lista de índices que representam os pontos
-# que devem ser visitados em uma determinada ordem. Essa função calcula a distância total percorrida pelo indivíduo
- 
-def fitness(individuo,imprimir_coordenadas=False):
-    lista = ["R"] + [pontos[i] for i in individuo] + ["R"] 
-    coordenada = [] 
-    distancia = 0
-    for i in range(0, len(lista) - 1):
-        ponto1 = lista[i]  # primeira coordenada
-        ponto2 = lista[i + 1]  # segunda coordenada
-        x1, y1 = None, None
-        x2, y2 = None, None
-        for indice, linha_matriz in enumerate(
-            matrix
-        ):  # vai iterar sob cada linha da matriz com seu indice
-            if ponto1 in linha_matriz:
-                x1 = indice
-                y1 = linha_matriz.index(ponto1) 
-                coordenada.append((x1,y1))
-            if ponto2 in linha_matriz:
-                x2 = indice
-                y2 = linha_matriz.index(ponto2) 
-            if x1 is not None and y2 is not None:
-                break 
-        distancia += abs(x1 - x2) + abs(y1 - y2)  # distancia de manhattan
-    if imprimir_coordenadas:
-        coordenada = coordenada + [coordenada_r]  
-    return distancia, coordenada
+def fitness(individuo):
+    # Calcula a distância entre a posição R e o primeiro ponto do indivíduo
+    distancia_total = abs(posicao_R["x"] - dict_pontos[individuo[0]]["x"]) + abs(
+        posicao_R["y"] - dict_pontos[individuo[0]]["y"]
+    )
+    # Para cada par de pontos consecutivos no indivíduo, calcula a distância entre eles e adiciona à distância total
+    for i, ponto_atual in enumerate(individuo):
+        if i != len(individuo) - 1:
+            distancia_total += abs(
+                dict_pontos[ponto_atual]["x"] - dict_pontos[individuo[i + 1]]["x"]
+            ) + abs(dict_pontos[ponto_atual]["y"] - dict_pontos[individuo[i + 1]]["y"])
+    # Calcula a distância entre a posição R e o último ponto do indivíduo, e adiciona à distância total
+    distancia_total += abs(posicao_R["x"] - dict_pontos[individuo[-1]]["x"]) + abs(
+        posicao_R["y"] - dict_pontos[individuo[-1]]["y"]
+    )
+    # Retorna a distância total calculada
+    return distancia_total
 
 
 # Esta função é responsável por selecionar os indivíduos mais aptos de uma população.
 # A seleção é feita por meio de um torneio
-
-
 def selection(populacao):
-    tamanho_torneio = 5
-    selecionados = []
-    for i in range(tamanho_elite):
-        selecionados.append(populacao[i])
-    for i in range(tamanho_populacao - tamanho_elite):
-        torneio = random.sample(populacao, tamanho_torneio)
-        melhor = min(torneio, key=lambda x: fitness(x))
-        selecionados.append(melhor)
-    return selecionados
+    lista_apt = aptidao(populacao)
+    lista_pais = [None] * len(populacao)
+    for i in range(0, len(populacao), 2):
+        pai1 = torneio(lista_apt)
+        pai2 = torneio(lista_apt)
+        lista_pais[i], lista_pais[i + 1] = populacao[pai1], populacao[pai2]
+    return lista_pais
 
+def torneio(lista_apt):
+    ind1 = random.randint(0, len(lista_apt) - 1)
+    ind2 = ind1
+    while ind1 == ind2:
+        ind2 = random.randint(0, len(lista_apt) - 1)
+    return ind1 if lista_apt[ind1] > lista_apt[ind2] else ind2
 
-# Realiza o cruzamento genético entre dois indivíduos representados como listas.
-# a função retorna a lista "filho" resultante do cruzamento genético entre os dois pais.
-
+# Realiza o cruzamento genético entre dois indivíduos representados como listas retornando o filho.
 
 def crossover(pai1, pai2):
     ponto_corte1 = random.randint(0, len(pai1) - 1)
@@ -92,7 +85,7 @@ def crossover(pai1, pai2):
     return filho
 
 
-# Percorrerá cada posição do indivíduo e, com uma probabilidade de 10%, trocará o valor dessa posição com o valor de outra posição aleatória (j).
+# Percorrerá cada posição do indivíduo e, com uma probabilidade de 1%, trocará o valor dessa posição com o valor de outra posição aleatória (j).
 def mutation(individuo):
     for i in range(len(individuo)):
         if random.random() < taxa_mutacao:
@@ -101,19 +94,20 @@ def mutation(individuo):
     return individuo
 
 
-# Cria a população inicial: São as minhas rotas com seus respectivos indices
+# Cria a população inicial com indivíduos aleatórios.
 def population(tamanho_populacao, pontos):
     populacao = []
-    individuos_gerados = [] 
-    #if tamanho_populacao > math.factorial(len(pontos)): tamanho_populacao = math.factorial(len(pontos))
+    individuos_gerados = []
+    # if tamanho_populacao > math.factorial(len(pontos)): tamanho_populacao = math.factorial(len(pontos))
     while len(populacao) < tamanho_populacao:
         individuo = list(range(len(pontos)))
         random.shuffle(individuo)
         if individuo not in individuos_gerados:
-            populacao.append(individuo) 
-    return populacao   
-# Executa o algoritmo genético utilizando as funções de seleção, cruzamento e mutação para criar uma nova população em cada geração.
-# Com um número maior de gerações, o algoritmo terá mais chances de encontrar uma solução ótima ou próxima da ótima
+            populacao.append(individuo)
+    return populacao
+
+
+# Executa o algoritmo genético utilizando as funções de seleção, cruzamento e mutação para criar uma nova população em cada geração. 
 def algoritmo_genetico(geracoes, tamanho_populacao, pontos):
     populacao_inicial = population(tamanho_populacao, pontos)
     for i in range(geracoes):
@@ -131,29 +125,39 @@ def algoritmo_genetico(geracoes, tamanho_populacao, pontos):
 
 # Encontra o melhor indivíduo com menor valor de fitness
 start = time.time()
-melhor_individuo = min(
-    algoritmo_genetico(geracoes, tamanho_populacao, pontos), key=lambda x: fitness(x)
-)
-# Imprime o resultado
+pop = algoritmo_genetico(geracoes, tamanho_populacao, pontos)
+lista_apt = aptidao(pop)
+melhor_individuo = pop[lista_apt.index(max(lista_apt))]
 rota = [pontos[i] for i in melhor_individuo]
-distancia, coordenada = fitness(melhor_individuo,imprimir_coordenadas=True)
+distancia = fitness(melhor_individuo)
 end = time.time()
-print("Melhor caminho: ", "-".join(rota))
-print("Distância total: ", distancia)
-print("Tempo de execução: ", end - start)
-  
- 
+print(f"Rota:{rota} \nDistância: {distancia}\nTempo de execução: {end-start}")
+
+
 # # Gráfico da melhor rota
-# fig = plt.figure() 
-# plt.scatter([x for x, y in coordenada], [y for x, y in coordenada]) 
-# plt.plot([x for x, y in coordenada], [y for x, y in coordenada])
-# plt.grid() 
+# rota_coordenada = [dict_pontos[i] for i in melhor_individuo]
+# coordenadas_melhor_rota = (
+#     [(posicao_R["x"], posicao_R["y"])]
+#     + [(ponto["x"], ponto["y"]) for ponto in rota_coordenada]
+#     + [(posicao_R["x"], posicao_R["y"])]
+# ) 
+# fig = plt.figure()
+# plt.scatter(
+#     [x for x, y in coordenadas_melhor_rota], [y for x, y in coordenadas_melhor_rota]
+# )
+# plt.plot(
+#     [x for x, y in coordenadas_melhor_rota], [y for x, y in coordenadas_melhor_rota]
+# )
+# # Adicionar rótulos dos pontos
+# for ponto in rota_coordenada:
+#     plt.annotate(ponto["name"], (ponto["x"], ponto["y"]))
+# plt.grid()
 # plt.show()
 
-# #Grafico comparação força bruta Vs AG
+# #Grafico comparação força bruta Vs AG 
 # x = [4,5,7,8,10]
 # y = [0.000971, 0.009004, 0.429994, 20.49354,60]
-# y1 = [0.81996,0.882999,1.519031,1.97299,3.25859]
+# y1 = [ 0.005997,0.006075,0.073047,0.079922,0.275868]
 # plt.plot(x, y, label = 'Algoritmo força bruta')  
 # plt.plot(x, y1, label = 'Algoritmo genético')
 # plt.xlabel('Número de pontos de entrega')   
