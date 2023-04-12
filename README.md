@@ -25,6 +25,5 @@ O output é a ordem de entrega dos pacotes, representada por uma string, na qual
 
 O projeto foi desenvolvido por mim para a disciplina de Projeto Interdisciplinar de Sistemas de Informação II, lecionada pelo professor Rodrigo Soares. Foi inteiramente feito em python, com auxílio da biblioteca matplotlib para criação de gráficos e experimentos.
 
-## Links externos
-1. **[Colab utilizado para criação do gráfico](https://colab.research.google.com/drive/1cd2TXMHoJHJlTnXLicI_cgxqQ6b9St6i?usp=sharing)**
-2. **[Descrição do problema](https://docs.google.com/document/d/1SC2B2q2Ue5bndAYnmT1o2L613gChXxNb/edit?usp=sharing&ouid=111358670991522502707&rtpof=true&sd=true)**
+## Links externos 
+1. **[Descrição do problema](https://docs.google.com/document/d/1SC2B2q2Ue5bndAYnmT1o2L613gChXxNb/edit?usp=sharing&ouid=111358670991522502707&rtpof=true&sd=true)**
